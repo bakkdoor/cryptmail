@@ -22,7 +22,7 @@ def get_mails
     i = 0
     pop.mails.each do |m|
       puts "getting mail ##{i}"
-      File.open("#{settings[:store_dir]}/#{Time.now.strftime("%Y-%m-%d--%H-%M-%S--#{i}")}.mail", 'w') do |f|
+      File.open("#{settings["storage"]["new"]}/#{Time.now.strftime("%Y-%m-%d--%H-%M-%S--#{i}")}.mail", 'w') do |f|
         f.write m.pop
       end
       m.delete
@@ -162,6 +162,8 @@ sleep_secs = settings["interval"]["seconds"].to_i
 sleep_time = sleep_hours * 3600 + sleep_mins * 60 + sleep_secs
 
 puts ">> programm interval is #{sleep_hours}:#{sleep_mins}:#{sleep_secs}"
+puts "storing new mails to:"
+puts settings["storage"]["new"]
 puts ">> starting execution"
 puts
 
