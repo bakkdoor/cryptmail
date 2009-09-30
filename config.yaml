@@ -1,0 +1,23 @@
+# cryptmail.rb configuration file
+
+interval:
+  hours: 0
+  minutes: 1
+  seconds: 0
+
+pop:
+  host: pop.mailhost.com
+  port: 110
+  user: username
+  password: password
+  
+smtp:
+  host: smtp.mailhost.com
+  port: 25
+  user: username
+  password: password
+
+storage:
+  new: /var/cryptmail/incoming
+  processed: /var/cryptmail/processed
+  attachments: /var/cryptmail/attachments
