@@ -9,20 +9,34 @@ require "pp"
 require "open3"
 require "yaml"
 
+class Hash
+  def method_missing(*args)
+    val = self
+    args.each do |a|
+      if val.is_a?(Hash)
+        val = val[a.to_s]
+      else
+        val = val.send(a.to_s)
+      end
+    end
+    val
+  end
+end
+
 def settings
   @@yaml ||= YAML::load_file("config.yaml")
 end
 
 def get_mails
-  pop = Net::POP3.new(settings["pop"]["host"], settings["pop"]["port"])
-  pop.start(settings["pop"]["user"], settings["pop"]["password"])
+  pop = Net::POP3.new(settings.pop.host, settings.pop.port)
+  pop.start(settings.pop.user, settings.pop.password)
   if pop.mails.empty?
     puts 'No mail.'
   else
     i = 0
     pop.mails.each do |m|
       puts "getting mail ##{i}"
-      File.open("#{settings["storage"]["new"]}/#{Time.now.strftime("%Y-%m-%d--%H-%M-%S--#{i}")}.mail", 'w') do |f|
+      File.open("#{settings.storage.new}/#{Time.now.strftime("%Y-%m-%d--%H-%M-%S--#{i}")}.mail", 'w') do |f|
         f.write m.pop
       end
       m.delete
@@ -34,7 +48,7 @@ def get_mails
 end
 
 def process_mails
-  mails = Dir[settings["storage"]["new"] + "/*.mail"]
+  mails = Dir[settings.storage.new + "/*.mail"]
   mails.each do |mail_file|
     puts ">> processing mail: #{mail_file}"
 
@@ -48,7 +62,7 @@ def process_mails
           puts ">> found gpg key attachment!"
 
           filename = File.basename(mail_file)
-          gpgkey_file = settings["storage"]["attachments"] + "/#{filename}.gpgkey"
+          gpgkey_file = settings.storage.attachments + "/#{filename}.gpgkey"
 
           File.open(gpgkey_file, "w+") do |f|
             f << at.gets(nil) # save gpg key to file
@@ -60,7 +74,7 @@ def process_mails
     end
 
     puts ">> done. moving mail #{mail_file} to processed/"
-    FileUtils.move(mail_file, settings["storage"]["processed"])
+    FileUtils.move(mail_file, settings.storage.processed)
   end
 end
 
@@ -112,11 +126,9 @@ def send_encrypted_reply(gpgkey_file, receiver)
   att.set_content_type('application','octet-stream')
   att.set_content_disposition('inline',
                               'filename' => "encrypted_message")
-
   att.body = "Your message was decrypted sucessfully. Here is my reply.\nIf you can see this, you've set up GnuPG and your mailclient successfully!"
 
   att = encrypt_mail(key_id, att)
-
   container.parts.push(att)
 
   container.set_content_type('multipart','encrypted',
@@ -147,8 +159,8 @@ def encrypt_mail(key_id, mail)
 end
 
 def send_mail(mail)
-  smtp = Net::SMTP.new(settings["smtp"]["host"], settings["smtp"]["port"])
-  smtp.start("localhost.localdomain", settings["smtp"]["user"], settings["smtp"]["password"]) do |smtp|
+  smtp = Net::SMTP.new(settings.smtp.host, settings.smtp.port)
+  smtp.start("localhost.localdomain", settings.smtp.user, settings.smtp.password) do |smtp|
     puts "connected to smtp.."
     smtp.send_message mail.to_s, mail.from, mail.to
     puts "sent encrypted reply to #{mail.to}"
@@ -156,14 +168,13 @@ def send_mail(mail)
 end
 
 # main programm
-sleep_hours = settings["interval"]["hours"].to_i
-sleep_mins = settings["interval"]["minutes"].to_i
-sleep_secs = settings["interval"]["seconds"].to_i
+sleep_hours = settings.interval.hours.to_i
+sleep_mins = settings.interval.minutes.to_i
+sleep_secs = settings.interval.seconds.to_i
 sleep_time = sleep_hours * 3600 + sleep_mins * 60 + sleep_secs
 
-puts ">> programm interval is #{sleep_hours}:#{sleep_mins}:#{sleep_secs}"
-puts "storing new mails to:"
-puts settings["storage"]["new"]
+puts ">> programm interval is: #{sleep_hours}:#{sleep_mins}:#{sleep_secs}"
+puts "storing new mails to: #{settings.storage.new}"
 puts ">> starting execution"
 puts
 
