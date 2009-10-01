@@ -31,18 +31,19 @@ def get_mails
   pop = Net::POP3.new(settings.pop.host, settings.pop.port)
   pop.start(settings.pop.user, settings.pop.password)
   if pop.mails.empty?
-    puts 'No mail.'
+    puts ">> No mail."
   else
     i = 0
     pop.mails.each do |m|
-      puts "getting mail ##{i}"
-      File.open("#{settings.storage.new}/#{Time.now.strftime("%Y-%m-%d--%H-%M-%S--#{i}")}.mail", 'w') do |f|
+      puts ">> getting mail ##{i}"
+      mail_filename = "#{settings.storage.new}/#{Time.now.strftime("%Y-%m-%d--%H-%M-%S--#{i}")}.mail"
+      File.open(mail_filename, 'w') do |f|
         f.write m.pop
       end
       m.delete
       i += 1
     end
-    puts "#{pop.mails.size} mails popped."
+    puts ">> #{pop.mails.size} mails popped."
   end
   pop.finish
 end
@@ -56,9 +57,11 @@ def process_mails
     pp mail.content_type
     if mail.multipart?
       puts ">> Mail is multipart!"
+      puts ">> Mail has got #{mail.attachments.size} attachments!"
+
       mail.attachments.each do |at|
         pp at
-        if at.content_type == "application/pgp-keys" or at.content_type == "application/octet-stream"
+        if settings.allowed_content_types.any?{ |ct| at.content_type == ct }
           puts ">> found gpg key attachment!"
 
           filename = File.basename(mail_file)
@@ -81,10 +84,9 @@ end
 def import_key(gpgkey_file)
   key = nil
 
-  stdin, stdout, stderr =Open3.popen3 "gpg --batch --import #{gpgkey_file}"
+  stdin, stdout, stderr = Open3.popen3 "gpg --batch --import #{gpgkey_file}"
 
   stderr.each do |line|
-    puts line
     if line =~ /^gpg: Schlüssel (\S+):/
       key = $1
     end
@@ -98,17 +100,17 @@ def send_encrypted_reply(gpgkey_file, receiver)
   if key_id
     puts ">> got key_id: #{key_id}"
   else
-    puts ">> error: got no gpg key id!"
-    exit
+    puts ">> error: got no gpg key id! (returning)"
+    return
   end
 
   # create the base mail-container
   container = TMail::Mail.new
-  container['User-Agent'] = "cryptmail.rb GnuPG Mailer"
+  container['User-Agent'] = settings.reply.user_agent
   container.date = Time.now
-  container.subject = 'GnuPG Encryption test'
+  container.subject = settings.reply.subject
   container.to = receiver
-  container.from = 'GnuPG Encryption-Test Service <mailtest@flasht.de>'
+  container.from = settings.reply.from
   container.mime_version = '1.0'
   container.set_content_disposition('inline')
   container.body = ""
@@ -126,9 +128,8 @@ def send_encrypted_reply(gpgkey_file, receiver)
   att.set_content_type('application','octet-stream')
   att.set_content_disposition('inline',
                               'filename' => "encrypted_message")
-  att.body = "Your message was decrypted sucessfully. Here is my reply.\nIf you can see this, you've set up GnuPG and your mailclient successfully!"
 
-  att = encrypt_mail(key_id, att)
+  att.body = encrypt_message(key_id, settings.reply.message)
   container.parts.push(att)
 
   container.set_content_type('multipart','encrypted',
@@ -138,10 +139,10 @@ def send_encrypted_reply(gpgkey_file, receiver)
   send_mail container
 end
 
-def encrypt_mail(key_id, mail)
+def encrypt_message(key_id, message)
   i, o, e = Open3.popen3 "gpg --batch -r #{key_id} -ea"
   i.puts key_id
-  i.puts mail.body
+  i.puts message
   i.close
 
   encrypted_msg = []
@@ -153,9 +154,7 @@ def encrypt_mail(key_id, mail)
     puts "error>> #{l}"
   end
 
-  mail.body = encrypted_msg.join
-
-  mail
+  encrypted_msg.join
 end
 
 def send_mail(mail)
