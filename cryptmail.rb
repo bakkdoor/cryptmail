@@ -60,8 +60,8 @@ def process_mails
       puts ">> Mail has got #{mail.attachments.size} attachments!"
 
       mail.attachments.each do |at|
-        pp at
         if settings.allowed_content_types.any?{ |ct| at.content_type == ct }
+          pp at
           puts ">> found gpg key attachment!"
 
           filename = File.basename(mail_file)
@@ -140,7 +140,7 @@ def send_encrypted_reply(gpgkey_file, receiver)
 end
 
 def encrypt_message(key_id, message)
-  i, o, e = Open3.popen3 "gpg --batch -r #{key_id} -ea"
+  i, o, e = Open3.popen3 "gpg --always-trust --batch -r #{key_id} -ea"
   i.puts key_id
   i.puts message
   i.close
