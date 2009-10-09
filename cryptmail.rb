@@ -1,5 +1,5 @@
 #!/usr/bin/env ruby
-# -*- coding: iso-8859-15 -*-
+# -*- coding: utf-8 -*-
 
 require "rubygems"
 require "tmail"
@@ -58,6 +58,15 @@ def process_mails
     pp mail.content_type
     if mail.multipart?
       puts ">> Mail is multipart!"
+      
+      # check if message is decrypted
+      if mail.attachments.first.lines.first =~ /BEGIN PGP MESSAGE/
+        decrypted_mail = decrypt_message(mail.attachments.first.gets(nil))
+        from = mail.from # save from adress
+        mail = TMail::Mail.parse(decrypted_mail)
+        mail.from = from
+      end
+
       puts ">> Mail has got #{mail.attachments.size} attachments!"
 
       mail.attachments.each do |at|
@@ -171,6 +180,23 @@ def encrypt_message(key_id, message)
   encrypted_msg.join
 end
 
+def decrypt_message(message)
+  i, o, e = Open3.popen3 "gpg --decrypt --batch"
+  i.puts message
+  i.close
+
+  decrypted_msg = []
+  o.each do |l|
+    decrypted_msg << l
+  end
+
+  # e.each do |l|
+  #   puts "error>> #{l}"
+  # end
+
+  decrypted_msg.join
+end
+
 def send_mail(mail)
   smtp = Net::SMTP.new(settings.smtp.host, settings.smtp.port)
   smtp.start("localhost.localdomain", settings.smtp.user, settings.smtp.password) do |smtp|
@@ -184,8 +210,8 @@ end
 
 # check if each storage-directory is existant
 settings.storage.each do |k,v|
-  unless File.directory?(settings[k])
-    puts "error>> Storage directory does not exist: #{settings[k]}"
+  unless File.directory?(v)
+    puts "error>> Storage directory does not exist: #{v}"
     exit
   end
 end
