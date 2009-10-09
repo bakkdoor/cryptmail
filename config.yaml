@@ -28,8 +28,8 @@ reply:
   subject: GnuPG Encryption Test
   message: "Your message was decrypted sucessfully. Here is my reply.\nIf you can see this, you've set up GnuPG and your mailclient successfully!"
   signature:
-    key_id: 0x12345678
-  
+    key_id: 12345678
+
 allowed_content_types:
   - application/pgp-keys
   - application/octet-stream

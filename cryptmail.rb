@@ -1,4 +1,5 @@
 #!/usr/bin/env ruby
+# -*- coding: iso-8859-15 -*-
 
 require "rubygems"
 require "tmail"
@@ -139,9 +140,22 @@ def send_encrypted_reply(gpgkey_file, receiver)
   send_mail container
 end
 
+def sign_message(message)
+  key_id = settings.reply.signature.key_id
+  puts ">> signing message with key_id: #{key_id}"
+  i, o, e = Open3.popen3 "gpg --batch --default-key #{key_id} --clearsign"
+  i.puts message
+  i.close
+  
+  signed_msg = []
+  o.each{ |l| signed_msg << l }
+  e.each{ |l| puts "error>> #{l}" }
+  signed_msg.join
+end
+
 def encrypt_message(key_id, message)
+  message = sign_message(message)
   i, o, e = Open3.popen3 "gpg --always-trust --batch -r #{key_id} -ea"
-  i.puts key_id
   i.puts message
   i.close
 
