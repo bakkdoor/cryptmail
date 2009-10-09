@@ -1,0 +1,33 @@
+--------------------------------------------------------
+cryptmail - Simple encryption mail-robot written in Ruby
+(C) 2009 Christopher Bertels (bakkdoor@flasht.de)
+--------------------------------------------------------
+
+cryptmail is a simple encryption (GnuPG) encryption mail-robot.
+It is written in Ruby and licensed under the terms of the GNU GPL v3.
+For more information have a look at the LICENSE file.
+
+-------------
+INSTALLATION:
+-------------
+
+To install & use cryptmail you need the Ruby language installed:
+e.g. on Debian based Systems:
+
+$ apt-get install ruby
+
+You'll also need some third-party libraries, available through RubyGems,
+Ruby's packaging system:
+
+$ apt-get install rubygems
+
+Install the TMail gem:
+
+$ gem install tmail
+
+Now you can run cryptmail:
+
+$ ruby -I /path/to/cryptmail/lib/ /path/to/cryptmail/bin/cryptmail
+
+Also, make sure, you've configured the config file (config.yaml) 
+in cryptmails base directory (in our example: /path/to/cryptmail/config.yaml).
