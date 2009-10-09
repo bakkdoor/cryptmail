@@ -1,4 +1,3 @@
-#!/usr/bin/env ruby
 # -*- coding: utf-8 -*-
 
 require "rubygems"
@@ -11,8 +10,12 @@ require "yaml"
 require "utils"
 
 module Cryptmail
+  def self.load_settings(config_file)
+    @@settings_yaml = YAML::load_file(config_file) 
+  end
+  
   def self.settings
-    @@yaml ||= YAML::load_file("config.yaml")
+    @@settings_yaml
   end
 
   def self.get_mails
@@ -131,32 +134,4 @@ module Cryptmail
       puts "sent encrypted reply to #{mail.to}"
     end
   end
-end
-
-#################
-# main programm #
-#################
-
-# check if each storage-directory is existant
-Cryptmail::settings.storage.each do |k,v|
-  unless File.directory?(v)
-    puts "error>> Storage directory does not exist: #{v}"
-    exit
-  end
-end
-
-sleep_hours = Cryptmail::settings.interval.hours.to_i
-sleep_mins = Cryptmail::settings.interval.minutes.to_i
-sleep_secs = Cryptmail::settings.interval.seconds.to_i
-sleep_time = sleep_hours * 3600 + sleep_mins * 60 + sleep_secs
-
-puts ">> programm interval is: #{sleep_hours}:#{sleep_mins}:#{sleep_secs}"
-puts "storing new mails to: #{Cryptmail::settings.storage.new}"
-puts ">> starting execution"
-puts
-
-loop do
-  Cryptmail::get_mails
-  Cryptmail::process_mails
-  sleep(sleep_time)
 end
