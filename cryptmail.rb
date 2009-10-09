@@ -181,6 +181,15 @@ def send_mail(mail)
 end
 
 # main programm
+
+# check if each storage-directory is existant
+settings.storage.each do |k,v|
+  unless File.directory?(settings[k])
+    puts "error>> Storage directory does not exist: #{settings[k]}"
+    exit
+  end
+end
+
 sleep_hours = settings.interval.hours.to_i
 sleep_mins = settings.interval.minutes.to_i
 sleep_secs = settings.interval.seconds.to_i
