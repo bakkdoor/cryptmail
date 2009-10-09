@@ -24,7 +24,7 @@ module GPG
     key = nil
     stdin, stdout, stderr = Open3.popen3 "gpg --batch --import #{gpgkey_file}"
     stderr.each do |line|
-      if line =~ /^gpg: Schlüssel (\S+):/       
+      if line =~ /^gpg: (Schlüssel|key) (\S+):/
         key = $1
       end
     end
