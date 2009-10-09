@@ -1,27 +1,45 @@
 # cryptmail.rb configuration file
 
+# this determines the time interval between each programm-loop
+# when cryptmail has finished processing all new mails,
+# it will sleep the given amount of time and re-run its main loop
+# afterwards, sleeping again when finished 
+# (repeating until cryptmail is stopped)
 interval:
   hours: 0
   minutes: 1
   seconds: 0
 
+# pop3 mail-account information
+# cryptmail looks into the inbox of the specified mailbox
 pop:
   host: pop.mailhost.com
   port: 110
   user: username
   password: password
   
+# smtp mail-account information
+# this is used for sending encrypted email back to recipients
 smtp:
   host: smtp.mailhost.com
   port: 25
   user: username
   password: password
 
+# the storage folders tell cryptmail where to save:
+# - incoming mail (new mails fetched from pop3 inbox)
+# - processed mail (all the mails that have been processed by cryptmail)
+# - attachments (all attachments, usually public gpg-keys)
+# cryptmail does not delete any of them, so they can be reviewed later, 
+# if needed
 storage:
   new: /var/cryptmail/incoming
   processed: /var/cryptmail/processed
   attachments: /var/cryptmail/attachments
 
+# reply settings
+# the key_id is the GPG key id to use for decryption of incoming decrypted messages
+# and for signatures of outgoing emails
 reply:
   user_agent: cryptmail.rb GnuPG Mailer
   from: GnuPG Encryption-Test Service <username@mailhost.com>
@@ -30,6 +48,7 @@ reply:
   signature:
     key_id: 12345678
 
+# list of allowed content types for gpg-key attachments
 allowed_content_types:
   - application/pgp-keys
   - application/octet-stream
