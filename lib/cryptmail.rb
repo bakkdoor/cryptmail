@@ -8,8 +8,9 @@ require "pp"
 require "yaml"
 
 require "utils"
+require "crypt_debug"
 
-module Cryptmail
+module Cryptmail  
   def self.load_settings(config_file)
     @@settings_yaml = YAML::load_file(config_file) 
   end
@@ -22,11 +23,11 @@ module Cryptmail
     pop = Net::POP3.new(settings.pop.host, settings.pop.port)
     pop.start(settings.pop.user, settings.pop.password)
     if pop.mails.empty?
-      puts ">> No mail."
+      Debug::info "No mail."
     else
       i = 0
       pop.mails.each do |m|
-        puts ">> getting mail ##{i}"
+        Debug::info "getting mail ##{i}"
         mail_filename = "#{settings.storage.new}/#{Time.now.strftime("%Y-%m-%d--%H-%M-%S--#{i}")}.mail"
         File.open(mail_filename, 'w') do |f|
           f.write m.pop
@@ -34,7 +35,7 @@ module Cryptmail
         m.delete
         i += 1
       end
-      puts ">> #{pop.mails.size} mails popped."
+      Debug::info "#{pop.mails.size} mails popped."
     end
     pop.finish
   end
@@ -42,12 +43,12 @@ module Cryptmail
   def self.process_mails
     mails = Dir[settings.storage.new + "/*.mail"]
     mails.each do |mail_file|
-      puts ">> processing mail: #{mail_file}"
+      Debug::info "processing mail: #{mail_file}"
 
       mail = TMail::Mail.load(mail_file)
       pp mail.content_type
       if mail.multipart?
-        puts ">> Mail is multipart!"
+        Debug::info "Mail is multipart!"
         
         # check if message is decrypted
         if mail.attachments.first.lines.first =~ /BEGIN PGP MESSAGE/
@@ -57,12 +58,12 @@ module Cryptmail
           mail.from = from
         end
 
-        puts ">> Mail has got #{mail.attachments.size} attachments!"
+        Debug::info "Mail has got #{mail.attachments.size} attachments!"
 
         mail.attachments.each do |at|
           if settings.allowed_content_types.any?{ |ct| at.content_type == ct }
             pp at
-            puts ">> found gpg key attachment!"
+            Debug::info "found gpg key attachment!"
 
             filename = File.basename(mail_file)
             gpgkey_file = settings.storage.attachments + "/#{filename}.gpgkey"
@@ -76,7 +77,7 @@ module Cryptmail
         end
       end
 
-      puts ">> done. moving mail #{mail_file} to processed/"
+      Debug::info "done. moving mail #{mail_file} to processed/"
       FileUtils.move(mail_file, settings.storage.processed)
     end
   end
@@ -85,9 +86,9 @@ module Cryptmail
     recv_key_id = GPG::import_key(gpgkey_file)
 
     if recv_key_id
-      puts ">> got key_id: #{recv_key_id}"
+      Debug::info "got key_id: #{recv_key_id}"
     else
-      puts ">> error: got no gpg key id! (returning)"
+      Debug::error "got no gpg key id! (returning)"
       return
     end
 
@@ -129,9 +130,9 @@ module Cryptmail
   def self.send_mail(mail)
     smtp = Net::SMTP.new(settings.smtp.host, settings.smtp.port)
     smtp.start("localhost.localdomain", settings.smtp.user, settings.smtp.password) do |smtp|
-      puts "connected to smtp.."
+      Debug::info "connected to smtp.."
       smtp.send_message mail.to_s, mail.from, mail.to
-      puts "sent encrypted reply to #{mail.to}"
+      Debug::info "sent encrypted reply to #{mail.to}"
     end
   end
 end
