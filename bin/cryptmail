@@ -1,9 +1,11 @@
 #!/usr/bin/env ruby
 
+base_dir = File.expand_path(File.dirname(__FILE__)) + "/../"
+
+$LOAD_PATH << base_dir + "lib/"
 require "cryptmail"
 
-base_dir = File.expand_path(File.dirname(__FILE__))
-Cryptmail::load_settings("#{base_dir}/../config.yaml")
+Cryptmail::load_settings("#{base_dir}/config.yaml")
 
 # check if each storage-directory is existant
 Cryptmail::settings.storage.each do |k,v|

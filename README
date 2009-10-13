@@ -27,7 +27,7 @@ $ gem install tmail
 
 Now you can run cryptmail:
 
-$ ruby -I /path/to/cryptmail/lib/ /path/to/cryptmail/bin/cryptmail
+$ ruby /path/to/cryptmail/bin/cryptmail
 
 Also, make sure, you've configured the config file (config.yaml) 
 in cryptmails base directory (in our example: /path/to/cryptmail/config.yaml).
