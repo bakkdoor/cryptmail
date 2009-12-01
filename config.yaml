@@ -17,6 +17,7 @@ pop:
   port: 110
   user: username
   password: password
+  ssl: false
   
 # smtp mail-account information
 # this is used for sending encrypted email back to recipients
@@ -25,6 +26,7 @@ smtp:
   port: 25
   user: username
   password: password
+  ssl: false
 
 # the storage folders tell cryptmail where to save:
 # - incoming mail (new mails fetched from pop3 inbox)

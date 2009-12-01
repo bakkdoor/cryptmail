@@ -2,8 +2,6 @@
 
 require "rubygems"
 require "tmail"
-require "net/pop"
-require "net/smtp"
 require "pp"
 require "yaml"
 
@@ -19,7 +17,25 @@ module Cryptmail
     @@settings_yaml
   end
 
+  def self.setup
+    if settings.pop.ssl
+      require "pop" # require from this folder
+    else
+      require "net/pop"
+    end
+
+    if settings.smtp.ssl
+      require "smtp" # same here
+    else
+      require "net/smtp"
+    end
+  end
+
   def self.get_mails
+    if settings.pop.ssl
+      Net::POP3.enable_ssl(OpenSSL::SSL::VERIFY_NONE)
+    end
+
     pop = Net::POP3.new(settings.pop.host, settings.pop.port)
     pop.start(settings.pop.user, settings.pop.password)
     if pop.mails.empty?
@@ -129,8 +145,13 @@ module Cryptmail
 
   def self.send_mail(mail)
     smtp = Net::SMTP.new(settings.smtp.host, settings.smtp.port)
-    smtp.start("localhost.localdomain", settings.smtp.user, settings.smtp.password) do |smtp|
-      Debug::info "connected to smtp.."
+    
+    if settings.smtp.ssl
+      smtp.enable_ssl
+    end
+   
+    smtp.start("localhost.localdomain", settings.smtp.user, settings.smtp.password, :plain) do |smtp|
+      Debug::info "connected to smtp with user: #{settings.smtp.user} to host #{settings.smtp.host}"
       smtp.send_message mail.to_s, mail.from, mail.to
       Debug::info "sent encrypted reply to #{mail.to}"
     end

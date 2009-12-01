@@ -6,6 +6,7 @@ $LOAD_PATH << base_dir + "lib/"
 require "cryptmail"
 
 Cryptmail::load_settings("#{base_dir}/config.yaml")
+Cryptmail::setup
 
 # check if each storage-directory is existant
 Cryptmail::settings.storage.each do |k,v|
