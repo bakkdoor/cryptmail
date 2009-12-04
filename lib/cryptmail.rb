@@ -21,6 +21,7 @@ require "rubygems"
 require "tmail"
 require "pp"
 require "yaml"
+require "gpgme"
 
 require "utils"
 require "crypt_debug"
@@ -82,10 +83,13 @@ module Cryptmail
       pp mail.content_type
       if mail.multipart?
         Debug::info "Mail is multipart!"
-        
+        gpg_ctx = GPGME::Ctx.new(:armor => true)
+
         # check if message is decrypted
         if mail.attachments.first.lines.first =~ /BEGIN PGP MESSAGE/
-          decrypted_mail = GPG::decrypt_message(mail.attachments.first.gets(nil))
+          #decrypted_mail = GPG::decrypt_message(mail.attachments.first.gets(nil))
+          decrypted_mail = gpg_ctx.decrypt(mail.attachments.first)
+          puts "decrypt result: #{gpg_ctx.decrypt_result.inspect}"
           from = mail.from # save from adress
           mail = TMail::Mail.parse(decrypted_mail)
           mail.from = from
@@ -105,7 +109,7 @@ module Cryptmail
               f << at.gets(nil) # save gpg key to file
             end
 
-            send_encrypted_reply(gpgkey_file, mail.from)
+            send_encrypted_reply(gpg_ctx, gpgkey_file, mail.from)
           end
         end
       end
@@ -115,8 +119,16 @@ module Cryptmail
     end
   end
 
-  def self.send_encrypted_reply(gpgkey_file, receiver)
-    recv_key_id = GPG::import_key(gpgkey_file)
+  def self.send_encrypted_reply(gpg_ctx, gpgkey_file, receiver)
+    #recv_key_id = GPG::import_key(gpgkey_file)
+    key = File.open(gpgkey_file)
+    gpg_ctx.import(GPGME::Data.from_str(key.readlines.join))
+
+    imported = gpg_ctx.import_result.imports.first
+    
+    if imported
+      recv_key_id = imported.fpr
+    end
 
     if recv_key_id
       Debug::info "got key_id: #{recv_key_id}"
@@ -150,7 +162,14 @@ module Cryptmail
     att.set_content_disposition('inline',
                                 'filename' => "encrypted_message")
 
-    att.body = GPG::encrypt_message(settings.reply.signature.key_id, recv_key_id, settings.reply.message)
+    #att.body = GPG::encrypt_message(settings.reply.signature.key_id, recv_key_id, settings.reply.message)
+
+    signer_key = gpg_ctx.keys(settings.reply.signature.key_id).first
+    recv_key = gpg_ctx.keys(recv_key_id).first
+
+    gpg_ctx.add_signer(signer_key)
+
+    att.body = gpg_ctx.encrypt(recv_key, GPGME::Data.from_str(settings.reply.message))
     container.parts.push(att)
 
     container.set_content_type('multipart','encrypted',
