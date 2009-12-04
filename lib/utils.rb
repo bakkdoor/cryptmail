@@ -37,6 +37,10 @@ class Hash
 end
 
 module GPG
+  ## Tries to import a gpg key from a given filename.
+  ## If import succeeds, returns its key id (hexadecimal hashvalue) as
+  ## a string.
+  ## Otherwise returns nil.
   def self.import_key(gpgkey_file)
     key = nil
     stdin, stdout, stderr = Open3.popen3 "gpg --batch --import #{gpgkey_file}"
@@ -48,6 +52,9 @@ module GPG
     key
   end
 
+  ## Runs the gpg command and yields an input-stream to gpg to a given
+  ## block.
+  ## Finally returns the output of running gpg with a given command.
   def self.run_gpg(gpg_cmd, show_errors = true)
     i, o, e = Open3.popen3 "gpg --batch #{gpg_cmd}"
     #i.puts message
@@ -65,6 +72,8 @@ module GPG
     return_msg.join
   end
 
+  ## Signs a given message with a gpg key (specified via key_id) and
+  ## Returns the signed message as a string.
   def self.sign_message(key_id, message)
     puts ">> signing message with key_id: #{key_id}"
     run_gpg "--default-key #{key_id} --clearsign" do |input|
@@ -72,6 +81,8 @@ module GPG
     end
   end
 
+  ## Encrypts a message (string) with a given key for a receiver key id.
+  ## Returns the encrypted message as a string.
   def self.encrypt_message(sign_key_id, recv_key_id, message)
     message = sign_message(sign_key_id, message)
     run_gpg "--always-trust -r #{recv_key_id} -ea" do |input|
@@ -79,6 +90,8 @@ module GPG
     end      
   end
 
+  ## Decrypts a given message (string) and returns the decrypted
+  ## message as a string.
   def self.decrypt_message(message)
     run_gpg "--decrypt", false do |input|
       input.puts message
